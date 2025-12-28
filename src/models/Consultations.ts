@@ -16,9 +16,11 @@ export interface Patient {
     gender: "M" | "F"
     notes? : string;
 }
+
 export interface Consultation {
     id?: string;
     doctorId: string;
+    patientId? : string;
     date: string;
     startTime: string;
     durationInMin: number;

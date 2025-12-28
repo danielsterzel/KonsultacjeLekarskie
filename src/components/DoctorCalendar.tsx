@@ -3,19 +3,21 @@ import type { Consultation } from "../models/Consultations";
 import {
   addConsultation,
   getConsultations,
+  updateConsultationStatus,
 } from "../services/consultationsService";
 import {
   CONSULTATION_COLORS,
   CONSULTATION_TEXT_COLOR,
 } from "../constants/consultationStyles";
+import { currentUser } from "../context/currentUser";
 
 const hours = Array.from({ length: 12 }, (_, i) => 8 * 60 + i * 30);
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const getDayIndex = (date: string) => {
-  const d = new Date(date);
-  return (d.getDay() + 6) % 7;
-};
+// const getDayIndex = (date: string) => {
+//   const d = new Date(date);
+//   return (d.getDay() + 6) % 7;
+// };
 
 const isSameDay = (a: Date, b: Date) => {
   return (
@@ -79,6 +81,10 @@ export const DoctorCalendar = () => {
   const [currentWeekStart, setCurrentWeek] = useState<Date>(
     getStartOfTheWeek(new Date())
   );
+  const [selectedSlot, setSelectedSlot] = useState<{
+    date: string;
+    startTime: string;
+  } | null> (null);
 
   const weekDates: Date[] = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(currentWeekStart);
@@ -171,7 +177,12 @@ export const DoctorCalendar = () => {
                   key={day + min}
                   onClick={async () => {
                     if (isPastSlot(weekDates[index], min)) return;
-                    if (c) return;
+                    if (c && currentUser.role === "patient"){
+                        await updateConsultationStatus(c.id!, "cancelled");
+                    };
+                    if(c && currentUser.role === "doctor"){
+                        await updateConsultationStatus(c.id!, "finished");
+                    }
                     const date = weekDates[index];
                     const dateStr = dayToYmd(date);
                     const timeStr = minutesToTime(min);
@@ -181,6 +192,7 @@ export const DoctorCalendar = () => {
                     if (!ok) return;
                     await addConsultation({
                       doctorId: "doc1",
+                      patientId: currentUser.role === "patient" ? currentUser.id : undefined,
                       date: dateStr,
                       startTime: timeStr,
                       durationInMin: 30,
