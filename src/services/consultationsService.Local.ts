@@ -1,5 +1,7 @@
+import type { UserRole } from "../context/currentUser";
 import data from "../data/mockData.json";
-import type { Consultation } from "../models/Consultations";
+import type { Consultation, ConsultationStatus } from "../models/Consultations";
+import { canModifyConsultation } from "../utils/consultationAuthorization";
 
 /**
  * Lokalny magazyn danych
@@ -25,9 +27,38 @@ export const addConsultationLocal = async (c: Consultation) => {
 // ===== UPDATE =====
 export const updateConsultationStatusLocal = async (
   id: string,
-  status: "cancelled" | "finished",
+  status: ConsultationStatus,
 ) => {
   consultations = consultations.map((c) =>
     c.id === id ? { ...c, status } : c,
+  );
+};
+
+// export const updateConsultationStatusLocal = async (
+//   id: string,
+//   status: ConsultationStatus,
+//   userId: string,
+//   role: UserRole,
+// ) => {
+//   consultations = consultations.map((c) => {
+//     if (c.id !== id) return c;
+
+//     if (!canModifyConsultation(c, userId, role)) {
+//       throw new Error("Unauthorized consultation update");
+//     }
+
+//     return { ...c, status };
+//   });
+// };
+
+
+
+// ===== UPDATE (PARTIAL) =====
+export const updateConsultationLocal = async (
+  id: string,
+  data: Partial<Consultation>,
+) => {
+  consultations = consultations.map((c) =>
+    c.id === id ? { ...c, ...data } : c,
   );
 };

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { observeAuth } from "../services/authService";
-import { ensureUserProfile, getUserProfile } from "../services/usersService";
-import type { AppUser } from "../services/usersService";
+import { ensureUserProfile, getUserProfile } from "../services/userService";
+import type { AppUser } from "../services/userService";
 
 const AuthContext = createContext<any>(null);
 

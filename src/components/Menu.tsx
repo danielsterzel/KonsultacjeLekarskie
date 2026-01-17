@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../components/AuthContext";
 import { logout } from "../services/authService";
 import { getRole } from "../utils/roles";
 
@@ -8,10 +8,12 @@ export const Menu = () => {
   const role = getRole(user?.email);
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: 20 , display: "flex", gap: "10px"}}>
+
       {/* NIEZALOGOWANY */}
       {!user && (
         <>
+          <Link to="/">Doctors</Link>{" "}
           <Link to="/login">Login</Link>{" "}
           <Link to="/register">Register</Link>
         </>
@@ -20,23 +22,26 @@ export const Menu = () => {
       {/* ZALOGOWANY */}
       {user && (
         <>
-          <span style={{ marginRight: 10 }}>
-            {user.email} ({role})
-          </span>
-
           <Link to="/calendar">Calendar</Link>{" "}
-
+          {role === "patient" && (<Link to="/cart">Cart</Link>)}
+          {role === "patient" && (<Link to="/">Doctors</Link>)}
+          {role === "patient" && (<Link to="/">Home</Link>)}
+          
           {role === "doctor" && (
             <Link to="/availability">Availability</Link>
           )}
+          {role === "doctor" && (<Link to="/">Home</Link>)}
 
           {role === "admin" && (
-            <Link to="/settings">Auth Settings</Link>
+            <Link to="/settings">Auth settings</Link>
           )}
+          {role === "admin" && (
+            <Link to="/UserManagement">User Management</Link>
+            )}
+          {role === "admin" && (<Link to="/">Home</Link>)}
 
-          <button onClick={logout} style={{ marginLeft: 10 }}>
-            Logout
-          </button>
+          <span style={{ marginLeft: 10 }}>{user.email}</span>{" "}
+          <button onClick={logout}>Logout</button>
         </>
       )}
     </div>

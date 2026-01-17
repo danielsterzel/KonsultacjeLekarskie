@@ -5,9 +5,12 @@ import {
   addConsultation,
   getConsultations,
   updateConsultationStatus,
+  updateConsultation,
 } from "../services/consultationsService";
 
-import { currentUser } from "../context/currentUser";
+import { onValue, ref } from "firebase/database";
+import { db } from "../firebaseConfig";
+import { useAuth } from "../components/AuthContext";
 
 import {
   SLOT_MIN,
@@ -27,7 +30,6 @@ import {
 
 import {
   getConsultationBgColor,
-  getConsultationTitle,
   askForDuration,
   SLOT_PX,
 } from "../utils/consultationUI";
@@ -37,7 +39,6 @@ import { CONSULTATION_TEXT_COLOR } from "../constants/consultationStyles";
 // 6h domyślnie: 12 slotów po 30 min, od 8:00
 const hours = Array.from({ length: 12 }, (_, i) => 12 * 60 + i * SLOT_MIN);
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 const isFinished = (c: Consultation) => {
   const now = new Date();
   const start = new Date(`${c.date}T${c.startTime}`);
@@ -54,7 +55,7 @@ export const DoctorCalendar = () => {
   const [currentWeekStart, setCurrentWeek] = useState<Date>(
     getStartOfTheWeek(new Date()),
   );
-
+  const { user, profile } = useAuth();
   const weekDates: Date[] = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(currentWeekStart);
@@ -64,7 +65,22 @@ export const DoctorCalendar = () => {
   }, [currentWeekStart]);
 
   useEffect(() => {
-    getConsultations().then(setConsultations);
+    const unsub = onValue(ref(db, "consultations"), (snap) => {
+      if (!snap.exists()) {
+        setConsultations([]);
+        return;
+      }
+
+      const data = snap.val();
+      const list = Object.entries(data).map(([id, value]: any) => ({
+        id,
+        ...value,
+      }));
+
+      setConsultations(list);
+    });
+
+    return () => unsub();
   }, []);
 
   // ---- core helpers (refactor) ----
@@ -87,25 +103,25 @@ export const DoctorCalendar = () => {
     });
   };
 
-  const refresh = async () => {
-    setConsultations(await getConsultations());
-  };
-
   // =================== slot interacations ===================
 
   const handleExistingConsultationClick = async (c: Consultation) => {
-    if (currentUser.role === "patient" && c.status === "reserved") {
+    if (
+      profile?.role === "patient" &&
+      c.status === "reserved" &&
+      c.patientId === user.uid
+    ) {
       const ok = window.confirm("Cancel the consultation?");
       if (!ok) return;
       await updateConsultationStatus(c.id!, "cancelled");
-      await refresh();
+      return;
     }
 
-    if (currentUser.role === "doctor" && c.status === "reserved") {
+    if (profile?.role === "doctor" && c.status === "reserved") { // maybe c.doctorId
+    // check when I create more consultations with already registered doctors
       const ok = window.confirm("Mark the visit as finished?");
       if (!ok) return;
       await updateConsultationStatus(c.id!, "finished");
-      await refresh();
     }
   };
 
@@ -155,8 +171,14 @@ export const DoctorCalendar = () => {
     if (!docs) return [];
     return docs.split(",").map((d) => d.trim());
   };
+  useEffect(() => {
+    if (profile?.banned) {
+      alert("Your account has been banned. You cannot reserve consultations.");
+    }
+  }, [profile?.banned]);
 
   // Reservation handler
+
   const reserveConsultation = async (
     dayIndex: number,
     minute: number,
@@ -167,7 +189,7 @@ export const DoctorCalendar = () => {
   ) => {
     await addConsultation({
       doctorId: "doctor1",
-      patientId: currentUser.id,
+      patientId: user.uid,
       date: weekDates[dayIndex].toISOString().split("T")[0],
       startTime: minutesToTime(minute),
       durationInMin,
@@ -176,13 +198,19 @@ export const DoctorCalendar = () => {
       patientDetails,
       documents,
     });
-
-    await refresh();
   };
 
   const handleSlotClick = async (dayIndex: number, minute: number) => {
     const c = getConsultationForSlot(dayIndex, minute);
 
+    if (!user) {
+      alert("You must be logged in");
+      return;
+    }
+    if (profile?.banned) {
+      alert("Your account has been banned. You cannot reserve consultations.");
+      return;
+    }
     if (isPastSlot(weekDates[dayIndex], minute)) {
       alert("You cannot reserve a consultation in the past.");
       return;
@@ -198,7 +226,6 @@ export const DoctorCalendar = () => {
       )}?`,
     );
     if (!ok) return;
-
     const durationInMin = askForDuration();
     if (!durationInMin) return;
 
@@ -223,6 +250,14 @@ export const DoctorCalendar = () => {
   // render UI slot
   const renderSlot = (dayIndex: number, minute: number) => {
     const c = getConsultationForSlot(dayIndex, minute);
+    const canRate =
+      c &&
+      profile?.role === "patient" &&
+      c.status === "finished" &&
+      !c.rating &&
+      c.patientId === user?.uid &&
+      isStartSlot(c, minute);
+
     const status = c ? getEffectiveStatus(c) : "free";
     const isNow = isCurrentSlot(weekDates[dayIndex], minute);
 
@@ -254,13 +289,42 @@ export const DoctorCalendar = () => {
           color: CONSULTATION_TEXT_COLOR[status],
           fontSize: 12,
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           zIndex: c ? 2 : 1,
         }}
-        title={getConsultationTitle(c, status)}
       >
-        {c ? `${c.type} (${c.durationInMin} min)` : ""}
+        {c && (
+          <>
+            <div>{`${c.type} (${c.durationInMin} min)`}</div>
+
+            {canRate && (
+              <button
+                style={{ fontSize: 10, marginTop: 4 }}
+                onClick={async (e) => {
+                  e.stopPropagation();
+
+                  const ratingStr = prompt("Rate 1–5");
+                  const opinion = prompt("Your opinion") || undefined;
+
+                  const rating = Number(ratingStr);
+                  if (rating < 1 || rating > 5) {
+                    alert("Invalid rating");
+                    return;
+                  }
+
+                  await updateConsultation(c.id!, {
+                    rating,
+                    opinion,
+                  });
+                }}
+              >
+                Rate visit
+              </button>
+            )}
+          </>
+        )}
       </div>
     );
   };

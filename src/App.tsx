@@ -1,7 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import { ProtectedRoute } from "./routes/ProtectedRoute";
-
+import { AuthProvider } from "./components/AuthContext";
 import { Menu } from "./components/Menu";
 import { Login } from "./components/Login";
 import { Register } from "./components/Register";
@@ -9,59 +7,62 @@ import { DoctorCalendar } from "./components/DoctorCalendar";
 import { DoctorAvailability } from "./components/DoctorAvailability";
 import { AuthPersistenceSelector } from "./components/AuthPersistenceSelector";
 import { RoleRoute } from "./routes/RoleRoute";
+import { Cart } from "./components/Cart";
+import { DoctorList } from "./components/DoctorList";
+import { AdminUserList } from "./components/AdminUserList";
 
 function App() {
   return (
-  <AuthProvider>
-  <BrowserRouter>
-    <Menu />
+    <AuthProvider>
+      <BrowserRouter>
+  <Menu />
+  <Routes>
+    <Route path="/" element={<DoctorList />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/register" element={<Register />} />
 
-    <Routes>
-      {/* PUBLIC */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+    <Route
+      path="/calendar"
+      element={
+        <RoleRoute allow={["admin", "doctor", "patient"]}>
+          <DoctorCalendar />
+        </RoleRoute>
+      }
+    />
+    <Route path="/cart" 
+    element={
+      <RoleRoute allow={["patient"]}>
+        <Cart />
+      </RoleRoute>
+    }/>
 
-      {/* PROTECTED */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <div>Welcome to the Medical Consultation App</div>
-          </ProtectedRoute>
-        }
-      />
+    <Route
+      path="/availability"
+      element={
+        <RoleRoute allow={["doctor"]}>
+          <DoctorAvailability />
+        </RoleRoute>
+      }/>
 
-      <Route
-        path="/calendar"
-        element={
-          <RoleRoute allow={["admin", "doctor", "patient"]}>
-            <DoctorCalendar />
-          </RoleRoute>
-        }
-      />
+    <Route
+      path="/settings"
+      element={
+        <RoleRoute allow={["admin"]}>
+          <AuthPersistenceSelector />
+        </RoleRoute>
+      }/>
+    <Route path="/UserManagement" element={
+      <RoleRoute allow={["admin"]}>
+        <AdminUserList />
+      </RoleRoute>
+    }/>
 
-      <Route
-        path="/availability"
-        element={
-          <RoleRoute allow={["doctor"]}>
-            <DoctorAvailability />
-          </RoleRoute>
-        }
-      />
 
-      <Route
-        path="/settings"
-        element={
-          <RoleRoute allow={["admin"]}>
-            <AuthPersistenceSelector />
-          </RoleRoute>
-        }
-      />
-      
-    </Routes>
-  </BrowserRouter>
-</AuthProvider>
-    );
+  </Routes>
+</BrowserRouter>
+
+    </AuthProvider>
+  );
 }
 
 export default App;

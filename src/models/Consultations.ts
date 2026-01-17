@@ -1,5 +1,6 @@
 export type ConsultationStatus = 
 | "free"
+| "paid"
 | "reserved" 
 | "cancelled"
 | "finished"
@@ -28,4 +29,7 @@ export interface Consultation {
     status: ConsultationStatus;
     patientDetails?: PatientDetails;
     documents?: string[];
+
+    rating?: number;
+    opinion? : string;
 }

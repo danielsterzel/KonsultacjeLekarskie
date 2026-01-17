@@ -1,6 +1,6 @@
 import { db } from "../firebaseConfig";
 import { ref, get, set, update } from "firebase/database";
-import type { UserRole } from "../utils/roles";
+import { getRole, type UserRole  } from "../utils/roles";
 
 export type AppUser = {
   uid: string;
@@ -10,13 +10,15 @@ export type AppUser = {
 };
 
 export const ensureUserProfile = async (uid: string, email: string) => {
+  console.log("ensureUserProfile called", uid, email);
   const snap = await get(ref(db, `users/${uid}`));
   if (snap.exists()) return;
+  const role = getRole(email) ?? "patient";
 
   await set(ref(db, `users/${uid}`), {
     uid,
     email,
-    role: "patient",
+    role: role,
     banned: false,
   });
 };
@@ -32,4 +34,25 @@ export const setUserRole = async (uid: string, role: UserRole) => {
 
 export const setUserBanned = async (uid: string, banned: boolean) => {
   await update(ref(db, `users/${uid}`), { banned });
+};
+
+
+export const getAllUsers = async (): Promise<AppUser[]> => {
+  const snap = await get(ref(db, "users"));
+  if (!snap.exists()) return [];
+
+  const data = snap.val() as Record<string, AppUser>;
+  return Object.values(data);
+};
+
+
+export const getDoctors = async (): Promise<AppUser[]> => {
+  const snap = await get(ref(db, "users"));
+  if (!snap.exists()) return [];
+
+  const data = snap.val() as Record<string, AppUser>;
+
+  return Object.values(data).filter(
+    (u) => u.role === "doctor" && !u.banned
+  );
 };

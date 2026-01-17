@@ -1,8 +1,8 @@
 import { db } from "../firebaseConfig";
 import { ref, update, push, set, get } from "firebase/database";
-import type { Consultation } from "../models/Consultations";
+import type { Consultation, ConsultationStatus } from "../models/Consultations";
 import type { Availability } from "../models/Availability";
-
+import { canModifyConsultation } from "../utils/consultationAuthorization";
 
 console.log("LOADED: consultationsService.Firebase");
 
@@ -42,7 +42,27 @@ export const getConsultationsFirebase = async (): Promise<Consultation[]> => {
 
 export const updateConsultationStatusFirebase = async (
   id: string,
-  status: "cancelled" | "finished",
+  status: ConsultationStatus,
 ) => {
   await update(ref(db, `consultations/${id}`), { status });
 };
+
+export const updateConsultationFirebase = async (
+  id: string,
+  data: Partial<Consultation>
+) => {
+  await update(ref(db, `consultations/${id}`), data);
+};
+
+// export const updateConsultationStatusFirebase = async (
+//   c: Consultation,
+//   status: ConsultationStatus,
+//   userId: string,
+//   role: UserRole,
+// ) => {
+//   if (!canModifyConsultation(c, userId, role)) {
+//     throw new Error("Unauthorized consultation update");
+//   }
+
+//   await update(ref(db, `consultations/${c.id}`), { status });
+// };

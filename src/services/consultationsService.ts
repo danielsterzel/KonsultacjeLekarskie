@@ -2,12 +2,14 @@ import {
   getConsultationsLocal,
   addConsultationLocal,
   updateConsultationStatusLocal,
+  updateConsultationLocal,
 } from "./consultationsService.Local";
 
 import {
   getConsultationsFirebase,
   addConsultationFirebase,
   updateConsultationStatusFirebase,
+  updateConsultationFirebase,
 } from "./consultationsService.Firebase";
 
 const USE_LOCAL = false;
@@ -26,3 +28,8 @@ export const addConsultation = USE_LOCAL
 export const updateConsultationStatus = USE_LOCAL
   ? updateConsultationStatusLocal
   : updateConsultationStatusFirebase;
+export const markConsultationAsPaid = async (id: string) => {
+  await updateConsultationStatus(id, "paid");
+};
+export const updateConsultation = USE_LOCAL ? updateConsultationLocal : 
+updateConsultationFirebase;

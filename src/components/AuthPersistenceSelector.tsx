@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { setAuthPersistence, type AuthPersistence } from "../services/authService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../components/AuthContext";
 import { isAdmin } from "../utils/isAdmin";
 
 export const AuthPersistenceSelector = () => {
