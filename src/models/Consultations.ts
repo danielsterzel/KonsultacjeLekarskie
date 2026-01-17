@@ -8,9 +8,9 @@ export type ConsultationType =
 | "firstVisit"
 | "control"
 | "chronic"
-| "perscription"
+| "prescription"
 
-export interface Patient {
+export interface PatientDetails {
     name: string;
     age: number;
     gender: "M" | "F"
@@ -26,5 +26,6 @@ export interface Consultation {
     durationInMin: number;
     type: ConsultationType;
     status: ConsultationStatus;
-    patient?: Patient;
+    patientDetails?: PatientDetails;
+    documents?: string[];
 }

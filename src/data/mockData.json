@@ -1,0 +1,14 @@
+{
+  "consultations": [
+    {
+      "id": "1",
+      "doctorId": "doctor1",
+      "patientId": "patient1",
+      "date": "2025-02-10",
+      "startTime": "10:00",
+      "durationInMin": 30,
+      "type": "firstVisit",
+      "status": "reserved"
+    }
+  ]
+}

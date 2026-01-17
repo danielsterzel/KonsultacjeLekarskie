@@ -6,9 +6,12 @@ function App() {
     return (
     <div>
         <h1> Konsultacje lekarskie.</h1>
-        <TestFirebase />
+        { 
+            // <TestFirebase />
         <DoctorCalendar />
-        <DoctorAvailability />
+        // <DoctorAvailability /> 
+        }
+        
     </div>
     );
 }

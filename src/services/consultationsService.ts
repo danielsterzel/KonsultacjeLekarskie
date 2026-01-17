@@ -1,43 +1,28 @@
-import { db } from "../firebaseConfig";
-import { ref, update, push, set, get } from "firebase/database";
-import type { Consultation } from "../models/Consultations";
-import type { Availability } from "../models/Availability";
+import {
+  getConsultationsLocal,
+  addConsultationLocal,
+  updateConsultationStatusLocal,
+} from "./consultationsService.Local";
 
-export const addAvailability = async (a: Availability) => {
-    const newRef = push(ref(db, "availabilities"))
-    await set(newRef, a);
-}
+import {
+  getConsultationsFirebase,
+  addConsultationFirebase,
+  updateConsultationStatusFirebase,
+} from "./consultationsService.Firebase";
 
-export const getAvailabilities = async (): Promise<Availability[]> => {
-    const snapshot = await get(ref(db, "availabilities"));
-    if(!snapshot.exists()) return [];
+const USE_LOCAL = false;
 
-    const data = snapshot.val();
-    return Object.entries(data).map(([id, value]) => ({
-        id,
-        ...(value as Availability)
-    }));
-};
+console.log("USE_LOCAL =", USE_LOCAL);
+console.log("getConsultations impl =", USE_LOCAL ? "LOCAL" : "FIREBASE");
 
-export const addConsultation = async (c: Consultation) => {
-    const newRef = push(ref(db, "consultations"));
-    await set(newRef, c);
-};
+export const getConsultations = USE_LOCAL
+  ? getConsultationsLocal
+  : getConsultationsFirebase;
 
-export const getConsultations =  async (): Promise<Consultation[]> => {
-    const snapshot = await get(ref(db, "consultations"));
-    if(!snapshot.exists()) return [];
+export const addConsultation = USE_LOCAL
+  ? addConsultationLocal
+  : addConsultationFirebase;
 
-    const data = snapshot.val();
-    return Object.entries(data).map(([id, value]) => ({
-        id, 
-        ...(value as Consultation)
-    }));
-};
-
-export const updateConsultationStatus = async(
-    id: string,
-    status: "cancelled" | "finished"
-) => {
-    await update(ref(db, `consultations/${id}`), { status });
-};
+export const updateConsultationStatus = USE_LOCAL
+  ? updateConsultationStatusLocal
+  : updateConsultationStatusFirebase;

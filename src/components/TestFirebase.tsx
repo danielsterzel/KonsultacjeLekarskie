@@ -1,4 +1,4 @@
-import { addConsultation, getConsultations } from "../services/consultationsService";
+import { addConsultationFirebase, getConsultationsFirebase } from "../services/consultationsService.Firebase";
 import type { Consultation } from "../models/Consultations";
 
 export const TestFirebase = () => {
@@ -12,12 +12,12 @@ export const TestFirebase = () => {
             status: "free"
         };
 
-        await addConsultation(c);
+        await addConsultationFirebase(c);
         alert("Added to Firebase database");
     };
 
     const handleLoad = async () => {
-        const data = await getConsultations();
+        const data = await getConsultationsFirebase();
         console.log("Consultation from Firebase: ", data);
     };
     return (

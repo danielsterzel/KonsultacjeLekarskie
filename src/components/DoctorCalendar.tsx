@@ -1,67 +1,42 @@
-import React, { useEffect, useState } from "react";
-import type { Consultation } from "../models/Consultations";
+import React, { useEffect, useMemo, useState } from "react";
+
+import type { Consultation, ConsultationType } from "../models/Consultations";
 import {
   addConsultation,
   getConsultations,
   updateConsultationStatus,
 } from "../services/consultationsService";
-import {
-  CONSULTATION_COLORS,
-  CONSULTATION_TEXT_COLOR,
-} from "../constants/consultationStyles";
+
 import { currentUser } from "../context/currentUser";
 
-const hours = Array.from({ length: 12 }, (_, i) => 8 * 60 + i * 30);
+import {
+  SLOT_MIN,
+  timeToMinutes,
+  minutesToTime,
+  isToday,
+  getStartOfTheWeek,
+  isSameDay,
+} from "../utils/dateTime";
+
+import {
+  isStartSlot,
+  isCurrentSlot,
+  countConsultationsForDay,
+  isPastSlot,
+} from "../utils/calendar";
+
+import {
+  getConsultationBgColor,
+  getConsultationTitle,
+  askForDuration,
+  SLOT_PX,
+} from "../utils/consultationUI";
+
+import { CONSULTATION_TEXT_COLOR } from "../constants/consultationStyles";
+
+// 6h domyślnie: 12 slotów po 30 min, od 8:00
+const hours = Array.from({ length: 12 }, (_, i) => 12 * 60 + i * SLOT_MIN);
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-// const getDayIndex = (date: string) => {
-//   const d = new Date(date);
-//   return (d.getDay() + 6) % 7;
-// };
-
-const isSameDay = (a: Date, b: Date) => {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-};
-const timeToMinutes = (time: string) => {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-};
-const minutesToTime = (min: number) => {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-};
-const dayToYmd = (date: Date) => {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
-
-const getStartOfTheWeek = (date: Date) => {
-  const d = new Date(date);
-  const day = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - day);
-  return d;
-};
-
-const isPastSlot = (date: Date, min: number) => {
-  const slotTime = new Date(date);
-  slotTime.setHours(Math.floor(min / 60), min % 60, 0, 0);
-  return slotTime < new Date();
-};
-const isToday = (date: Date) => {
-  const today = new Date();
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
-};
 
 const isFinished = (c: Consultation) => {
   const now = new Date();
@@ -70,42 +45,226 @@ const isFinished = (c: Consultation) => {
 };
 
 const getEffectiveStatus = (c: Consultation): Consultation["status"] => {
-  if (c.status === "reserved" && isFinished(c)) {
-    return "finished";
-  }
+  if (c.status === "reserved" && isFinished(c)) return "finished";
   return c.status;
 };
 
 export const DoctorCalendar = () => {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [currentWeekStart, setCurrentWeek] = useState<Date>(
-    getStartOfTheWeek(new Date())
+    getStartOfTheWeek(new Date()),
   );
-  const [selectedSlot, setSelectedSlot] = useState<{
-    date: string;
-    startTime: string;
-  } | null> (null);
 
-  const weekDates: Date[] = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(currentWeekStart);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
+  const weekDates: Date[] = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(currentWeekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [currentWeekStart]);
 
   useEffect(() => {
     getConsultations().then(setConsultations);
   }, []);
 
+  // ---- core helpers (refactor) ----
+
   const getConsultationForSlot = (dayIndex: number, minute: number) => {
     const slotDate = weekDates[dayIndex];
 
     return consultations.find((c) => {
-      const start = timeToMinutes(c.startTime);
+      // anulowane nie mają blokować slotów
+      if (c.status === "cancelled") return false;
+
       const cDate = new Date(c.date);
-      return start === minute && isSameDay(cDate, slotDate);
+      if (!isSameDay(cDate, slotDate)) return false;
+
+      const start = timeToMinutes(c.startTime);
+      const end = start + c.durationInMin;
+
+      // multi-slot: slot należy do wizyty jeśli mieści się w [start, end)
+      return minute >= start && minute < end;
     });
   };
 
+  const refresh = async () => {
+    setConsultations(await getConsultations());
+  };
+
+  // =================== slot interacations ===================
+
+  const handleExistingConsultationClick = async (c: Consultation) => {
+    if (currentUser.role === "patient" && c.status === "reserved") {
+      const ok = window.confirm("Cancel the consultation?");
+      if (!ok) return;
+      await updateConsultationStatus(c.id!, "cancelled");
+      await refresh();
+    }
+
+    if (currentUser.role === "doctor" && c.status === "reserved") {
+      const ok = window.confirm("Mark the visit as finished?");
+      if (!ok) return;
+      await updateConsultationStatus(c.id!, "finished");
+      await refresh();
+    }
+  };
+
+  const collectPatientDetails = () => {
+    const name = window.prompt("Patient name:");
+    if (!name) return null;
+
+    const ageStr = window.prompt("Patient age:");
+    if (!ageStr) return null;
+
+    const gender = window.prompt("Gender (M/F):");
+    if (gender !== "M" && gender !== "F") {
+      alert("Invalid gender");
+      return null;
+    }
+
+    const notes = window.prompt("Notes for doctor (optional):") ?? "";
+
+    return {
+      name,
+      age: Number(ageStr),
+      gender: gender as "M" | "F",
+      notes,
+    };
+  };
+  const askForConsultationType = (): ConsultationType | null => {
+    const type = window.prompt(
+      "Consultation type: firstVisit / control / chronic / prescription",
+      "firstVisit",
+    );
+
+    if (
+      type === "firstVisit" ||
+      type === "control" ||
+      type === "chronic" ||
+      type === "prescription"
+    ) {
+      return type;
+    }
+
+    alert("Invalid consultation type");
+    return null;
+  };
+
+  const askForDocuments = () => {
+    const docs = window.prompt("Documents (URLs separated by comma):");
+    if (!docs) return [];
+    return docs.split(",").map((d) => d.trim());
+  };
+
+  // Reservation handler
+  const reserveConsultation = async (
+    dayIndex: number,
+    minute: number,
+    durationInMin: number,
+    type: Consultation["type"],
+    patientDetails: Consultation["patientDetails"],
+    documents: string[],
+  ) => {
+    await addConsultation({
+      doctorId: "doctor1",
+      patientId: currentUser.id,
+      date: weekDates[dayIndex].toISOString().split("T")[0],
+      startTime: minutesToTime(minute),
+      durationInMin,
+      type,
+      status: "reserved",
+      patientDetails,
+      documents,
+    });
+
+    await refresh();
+  };
+
+  const handleSlotClick = async (dayIndex: number, minute: number) => {
+    const c = getConsultationForSlot(dayIndex, minute);
+
+    if (isPastSlot(weekDates[dayIndex], minute)) {
+      alert("You cannot reserve a consultation in the past.");
+      return;
+    }
+    // klik na istniejącą wizytę
+    if (c) {
+      await handleExistingConsultationClick(c);
+      return;
+    }
+    const ok = window.confirm(
+      `Reserve visit ${weekDates[dayIndex].toLocaleDateString()} ${minutesToTime(
+        minute,
+      )}?`,
+    );
+    if (!ok) return;
+
+    const durationInMin = askForDuration();
+    if (!durationInMin) return;
+
+    const patientDetails = collectPatientDetails();
+    if (!patientDetails) return;
+
+    const type = askForConsultationType();
+    if (!type) return;
+
+    const documents = askForDocuments();
+
+    await reserveConsultation(
+      dayIndex,
+      minute,
+      durationInMin,
+      type,
+      patientDetails,
+      documents,
+    );
+  };
+
+  // render UI slot
+  const renderSlot = (dayIndex: number, minute: number) => {
+    const c = getConsultationForSlot(dayIndex, minute);
+    const status = c ? getEffectiveStatus(c) : "free";
+    const isNow = isCurrentSlot(weekDates[dayIndex], minute);
+
+    if (c && !isStartSlot(c, minute)) {
+      return (
+        <div
+          key={`slot-${dayIndex}-${minute}`}
+          style={{
+            border: isNow ? "2px solid #ff1744" : "1px solid #ccc",
+            backgroundColor: getConsultationBgColor(c, status),
+            borderTop: "none",
+            pointerEvents: "none",
+          }}
+        />
+      );
+    }
+
+    // start wizyty albo wolny slot
+    return (
+      <div
+        key={`slot-${dayIndex}-${minute}`}
+        onClick={() => handleSlotClick(dayIndex, minute)}
+        style={{
+          border: isNow ? "2px solid #ff1744" : "1px solid #ccc",
+          height: SLOT_PX,
+          backgroundColor: isNow
+            ? "#ffe6ea"
+            : getConsultationBgColor(c, status),
+          color: CONSULTATION_TEXT_COLOR[status],
+          fontSize: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: c ? 2 : 1,
+        }}
+        title={getConsultationTitle(c, status)}
+      >
+        {c ? `${c.type} (${c.durationInMin} min)` : ""}
+      </div>
+    );
+  };
+  // ---- UI ----
   return (
     <div>
       <div
@@ -126,6 +285,7 @@ export const DoctorCalendar = () => {
         >
           Previous week
         </button>
+
         <button
           onClick={() => {
             setCurrentWeek((prev) => {
@@ -138,12 +298,15 @@ export const DoctorCalendar = () => {
           Next week
         </button>
       </div>
+
       <div
         style={{ display: "grid", gridTemplateColumns: "80px repeat(7, 1fr)" }}
       >
         <div />
+
         {weekDates.map((date, index) => {
           const today = isToday(date);
+          const count = countConsultationsForDay(consultations, date);
 
           return (
             <div
@@ -159,65 +322,19 @@ export const DoctorCalendar = () => {
               <div style={{ fontSize: 12 }}>
                 {date.getDate()}.{date.getMonth() + 1}
               </div>
+
+              {/* LICZNIK */}
+              <div style={{ fontSize: 11, fontWeight: "normal" }}>
+                {count > 0 ? `${count} visits` : "—"}
+              </div>
             </div>
           );
         })}
 
-        {hours.map((min) => (
-          <React.Fragment key={min}>
-            <div>
-              {Math.floor(min / 60)}:{String(min % 60).padStart(2, "0")}
-            </div>
-
-            {days.map((day, index) => {
-              const c = getConsultationForSlot(index, min);
-              const status = c ? getEffectiveStatus(c) : "free";
-              return (
-                <div
-                  key={day + min}
-                  onClick={async () => {
-                    if (isPastSlot(weekDates[index], min)) return;
-                    if (c && currentUser.role === "patient"){
-                        await updateConsultationStatus(c.id!, "cancelled");
-                    };
-                    if(c && currentUser.role === "doctor"){
-                        await updateConsultationStatus(c.id!, "finished");
-                    }
-                    const date = weekDates[index];
-                    const dateStr = dayToYmd(date);
-                    const timeStr = minutesToTime(min);
-                    const ok = window.confirm(
-                      `Make a reservation for: ${dateStr} ${timeStr}?`
-                    );
-                    if (!ok) return;
-                    await addConsultation({
-                      doctorId: "doc1",
-                      patientId: currentUser.role === "patient" ? currentUser.id : undefined,
-                      date: dateStr,
-                      startTime: timeStr,
-                      durationInMin: 30,
-                      type: "firstVisit",
-                      status: "reserved",
-                    });
-                    const updated = await getConsultations();
-                    setConsultations(updated);
-                  }}
-                  style={{
-                    border: "1px solid #ccc",
-                    height: 40,
-                    backgroundColor: CONSULTATION_COLORS[status],
-                    color: CONSULTATION_TEXT_COLOR[status],
-                    fontSize: 12,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: status === "cancelled" ? 0.6 : 1,
-                  }}
-                >
-                  {c ? c.type : ""}
-                </div>
-              );
-            })}
+        {hours.map((minute) => (
+          <React.Fragment key={minute}>
+            <div>{minutesToTime(minute)}</div>
+            {days.map((_, dayIndex) => renderSlot(dayIndex, minute))}
           </React.Fragment>
         ))}
       </div>
