@@ -1,7 +1,7 @@
 import type { UserRole } from "../context/currentUser";
 import data from "../data/mockData.json";
 import type { Consultation, ConsultationStatus } from "../models/Consultations";
-import { canModifyConsultation } from "../utils/consultationAuthorization";
+import { canModifyConsultation } from "../utils/consultationAuthorization.ts";
 
 /**
  * Lokalny magazyn danych

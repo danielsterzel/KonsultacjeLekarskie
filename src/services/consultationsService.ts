@@ -2,7 +2,7 @@ import {
   getConsultationsLocal,
   addConsultationLocal,
   updateConsultationStatusLocal,
-  updateConsultationLocal,
+  updateConsultationLocal
 } from "./consultationsService.Local";
 
 import {
@@ -10,8 +10,10 @@ import {
   addConsultationFirebase,
   updateConsultationStatusFirebase,
   updateConsultationFirebase,
+  subscribeToConsultationsChangesFirebase
 } from "./consultationsService.Firebase";
 
+import type {Consultation} from "../models/Consultations";
 const USE_LOCAL = false;
 
 console.log("USE_LOCAL =", USE_LOCAL);
@@ -33,3 +35,8 @@ export const markConsultationAsPaid = async (id: string) => {
 };
 export const updateConsultation = USE_LOCAL ? updateConsultationLocal : 
 updateConsultationFirebase;
+
+export const subscribeToConsultationsChanges = USE_LOCAL ? (cb: (c: Consultation[]) => void) => {
+  getConsultationsLocal().then(cb);
+  return () => {};
+} : subscribeToConsultationsChangesFirebase;

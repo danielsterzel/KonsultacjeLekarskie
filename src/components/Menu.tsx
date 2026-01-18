@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
 import { logout } from "../services/authService";
-import { getRole } from "../utils/roles";
 
 export const Menu = () => {
-  const { user } = useAuth();
-  const role = getRole(user?.email);
+  const { user, profile} = useAuth();
+  const role = profile?.role;
 
   return (
     <div style={{ marginBottom: 20 , display: "flex", gap: "10px"}}>

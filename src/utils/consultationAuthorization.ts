@@ -1,6 +1,5 @@
 import type { Consultation } from "../models/Consultations";
-
-export type UserRole = "patient" | "doctor";
+import type { UserRole } from "../utils/roles";
 
 export const canModifyConsultation = (
   c: Consultation,

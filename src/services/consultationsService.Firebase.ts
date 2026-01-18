@@ -1,8 +1,7 @@
 import { db } from "../firebaseConfig";
-import { ref, update, push, set, get } from "firebase/database";
+import { ref, update, push, set, get, onValue } from "firebase/database";
 import type { Consultation, ConsultationStatus } from "../models/Consultations";
 import type { Availability } from "../models/Availability";
-import { canModifyConsultation } from "../utils/consultationAuthorization";
 
 console.log("LOADED: consultationsService.Firebase");
 
@@ -49,20 +48,30 @@ export const updateConsultationStatusFirebase = async (
 
 export const updateConsultationFirebase = async (
   id: string,
-  data: Partial<Consultation>
+  data: Partial<Consultation>,
 ) => {
   await update(ref(db, `consultations/${id}`), data);
 };
 
-// export const updateConsultationStatusFirebase = async (
-//   c: Consultation,
-//   status: ConsultationStatus,
-//   userId: string,
-//   role: UserRole,
-// ) => {
-//   if (!canModifyConsultation(c, userId, role)) {
-//     throw new Error("Unauthorized consultation update");
-//   }
+export const subscribeToConsultationsChangesFirebase = (
+  callback: (data: Consultation[]) => void,
+): (() => void) => {
+  const consultationsRef = ref(db, "consultations");
 
-//   await update(ref(db, `consultations/${c.id}`), { status });
-// };
+  const unsubscribe = onValue(consultationsRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      callback([]);
+      return;
+    }
+
+    const data = snapshot.val();
+    const list = Object.entries(data).map(([id, value]) => ({
+      id,
+      ...(value as Consultation),
+    }));
+
+    callback(list);
+  });
+
+  return unsubscribe;
+};

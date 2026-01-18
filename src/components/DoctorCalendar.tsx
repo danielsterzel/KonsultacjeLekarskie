@@ -3,15 +3,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { Consultation, ConsultationType } from "../models/Consultations";
 import {
   addConsultation,
-  getConsultations,
   updateConsultationStatus,
   updateConsultation,
+  subscribeToConsultationsChanges,
 } from "../services/consultationsService";
 
-import { onValue, ref } from "firebase/database";
-import { db } from "../firebaseConfig";
 import { useAuth } from "../components/AuthContext";
-
+import type { Doctor } from "../models/Doctor";
 import {
   SLOT_MIN,
   timeToMinutes,
@@ -27,7 +25,7 @@ import {
   countConsultationsForDay,
   isPastSlot,
 } from "../utils/calendar";
-
+import { getDoctors } from "../services/doctorService";
 import {
   getConsultationBgColor,
   askForDuration,
@@ -45,6 +43,23 @@ const isFinished = (c: Consultation) => {
   return start < now;
 };
 
+const askForDoctor = (doctors: Doctor[]): Doctor | undefined => {
+  if (doctors.length === 0) {
+    alert("No doctors available");
+    return;
+  }
+  const options = doctors.map((d, i) => `${i + 1}. ${d.name}`).join("\n");
+
+  const choice = prompt(`Choose doctor:\n ${options}`);
+  const index = Number(choice) - 1;
+
+  if (!doctors[index]) {
+    alert("invalid doctor choice");
+    return undefined;
+  }
+  return doctors[index];
+};
+
 const getEffectiveStatus = (c: Consultation): Consultation["status"] => {
   if (c.status === "reserved" && isFinished(c)) return "finished";
   return c.status;
@@ -55,6 +70,7 @@ export const DoctorCalendar = () => {
   const [currentWeekStart, setCurrentWeek] = useState<Date>(
     getStartOfTheWeek(new Date()),
   );
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const { user, profile } = useAuth();
   const weekDates: Date[] = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -63,24 +79,13 @@ export const DoctorCalendar = () => {
       return d;
     });
   }, [currentWeekStart]);
+  useEffect(() => {
+    getDoctors().then(setDoctors);
+  }, []);
 
   useEffect(() => {
-    const unsub = onValue(ref(db, "consultations"), (snap) => {
-      if (!snap.exists()) {
-        setConsultations([]);
-        return;
-      }
-
-      const data = snap.val();
-      const list = Object.entries(data).map(([id, value]: any) => ({
-        id,
-        ...value,
-      }));
-
-      setConsultations(list);
-    });
-
-    return () => unsub();
+    const unsubscribe = subscribeToConsultationsChanges(setConsultations);
+    return unsubscribe;
   }, []);
 
   // ---- core helpers (refactor) ----
@@ -117,8 +122,11 @@ export const DoctorCalendar = () => {
       return;
     }
 
-    if (profile?.role === "doctor" && c.status === "reserved") { // maybe c.doctorId
-    // check when I create more consultations with already registered doctors
+    if (
+      profile?.role === "doctor" &&
+      c.status === "reserved" &&
+      c.doctorId === user.uid
+    ) {
       const ok = window.confirm("Mark the visit as finished?");
       if (!ok) return;
       await updateConsultationStatus(c.id!, "finished");
@@ -180,6 +188,7 @@ export const DoctorCalendar = () => {
   // Reservation handler
 
   const reserveConsultation = async (
+    doctor: Doctor,
     dayIndex: number,
     minute: number,
     durationInMin: number,
@@ -188,7 +197,7 @@ export const DoctorCalendar = () => {
     documents: string[],
   ) => {
     await addConsultation({
-      doctorId: "doctor1",
+      doctorId: doctor.id,
       patientId: user.uid,
       date: weekDates[dayIndex].toISOString().split("T")[0],
       startTime: minutesToTime(minute),
@@ -201,12 +210,21 @@ export const DoctorCalendar = () => {
   };
 
   const handleSlotClick = async (dayIndex: number, minute: number) => {
-    const c = getConsultationForSlot(dayIndex, minute);
-
     if (!user) {
       alert("You must be logged in");
       return;
     }
+    const c = getConsultationForSlot(dayIndex, minute);
+
+    if (c) {
+      await handleExistingConsultationClick(c);
+      return;
+    }
+    if (profile?.role === "doctor") {
+      alert("Doctors cannot reserve consultations");
+      return;
+    }
+
     if (profile?.banned) {
       alert("Your account has been banned. You cannot reserve consultations.");
       return;
@@ -215,11 +233,11 @@ export const DoctorCalendar = () => {
       alert("You cannot reserve a consultation in the past.");
       return;
     }
+
     // klik na istniejącą wizytę
-    if (c) {
-      await handleExistingConsultationClick(c);
-      return;
-    }
+
+    const doctor = askForDoctor(doctors);
+    if (!doctor) return;
     const ok = window.confirm(
       `Reserve visit ${weekDates[dayIndex].toLocaleDateString()} ${minutesToTime(
         minute,
@@ -238,6 +256,7 @@ export const DoctorCalendar = () => {
     const documents = askForDocuments();
 
     await reserveConsultation(
+      doctor,
       dayIndex,
       minute,
       durationInMin,

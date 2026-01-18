@@ -1,6 +1,6 @@
 import { db } from "../firebaseConfig";
 import { ref, get, set, update } from "firebase/database";
-import { getRole, type UserRole  } from "../utils/roles";
+import { getInitialRoleFromEmail, type UserRole  } from "../utils/roles";
 
 export type AppUser = {
   uid: string;
@@ -10,18 +10,19 @@ export type AppUser = {
 };
 
 export const ensureUserProfile = async (uid: string, email: string) => {
-  console.log("ensureUserProfile called", uid, email);
   const snap = await get(ref(db, `users/${uid}`));
   if (snap.exists()) return;
-  const role = getRole(email) ?? "patient";
+
+  const role = getInitialRoleFromEmail(email);
 
   await set(ref(db, `users/${uid}`), {
     uid,
     email,
-    role: role,
+    role,
     banned: false,
   });
 };
+
 
 export const getUserProfile = async (uid: string): Promise<AppUser | null> => {
   const snap = await get(ref(db, `users/${uid}`));
