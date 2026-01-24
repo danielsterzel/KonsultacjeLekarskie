@@ -4,14 +4,13 @@ import {
   type AuthPersistence,
 } from "../services/authService";
 import { useAuth } from "../components/AuthContext";
-import { isAdmin } from "../utils/isAdmin";
 import styles from "./styles/AuthPersistenceSelector.module.css";
 
 export const AuthPersistenceSelector = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [mode, setMode] = useState<AuthPersistence>("LOCAL");
 
-  if (!isAdmin(user?.email)) return null;
+  if (!(profile.role === "admin")) return null;
 
   const apply = async () => {
     await setAuthPersistence(mode);
