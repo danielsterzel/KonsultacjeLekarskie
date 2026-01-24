@@ -5,7 +5,6 @@ import type { Availability } from "../models/Availability";
 
 console.log("LOADED: consultationsService.Firebase");
 
-// ===== AVAILABILITY =====
 export const addAvailability = async (a: Availability) => {
   const newRef = push(ref(db, "availabilities"));
   await set(newRef, a);
@@ -22,7 +21,6 @@ export const getAvailabilities = async (): Promise<Availability[]> => {
   }));
 };
 
-// ===== CONSULTATIONS =====
 export const addConsultationFirebase = async (c: Consultation) => {
   const newRef = push(ref(db, "consultations"));
   await set(newRef, c);
