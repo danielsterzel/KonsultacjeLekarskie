@@ -1,0 +1,68 @@
+.container {
+  min-height: calc(100vh - 64px);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  max-width: 900px;
+  width: 100%;
+  padding: 3rem;
+  background: #f9fafb;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.title {
+  font-size: 2.5rem;
+  color: #2f80ed;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: #6b7280;
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+.actions {
+  margin-top: 2.5rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.primaryButton {
+  background: #2ec4b6;
+  color: white;
+  padding: 0.9rem 1.6rem;
+  border-radius: 12px;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primaryButton:hover {
+  background: #26b2a5;
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  background: transparent;
+  color: #2f80ed;
+  padding: 0.9rem 1.6rem;
+  border-radius: 12px;
+  border: 2px solid #2f80ed;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background: #2f80ed;
+  color: white;
+}

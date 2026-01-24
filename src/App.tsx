@@ -10,14 +10,15 @@ import { RoleRoute } from "./routes/RoleRoute";
 import { Cart } from "./components/Cart";
 import { DoctorList } from "./components/DoctorList";
 import { AdminUserList } from "./components/AdminUserList";
-
+import {Home} from "./components/Home";
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
   <Menu />
   <Routes>
-    <Route path="/" element={<DoctorList />} />
+    <Route path="/" element={<Home/>} />
+    <Route path="/doctors" element={<DoctorList />} />
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
 

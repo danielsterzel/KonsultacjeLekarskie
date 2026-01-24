@@ -34,6 +34,27 @@ import {
 
 import { CONSULTATION_TEXT_COLOR } from "../constants/consultationStyles";
 
+const buttonStyle: React.CSSProperties = {
+  padding: "6px 14px",
+  borderRadius: 8,
+  border: "none",
+  background: "#2ec4b6",
+  color: "white",
+  cursor: "pointer",
+  fontSize: 13,
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  background: "#2f80ed",
+};
+
+const smallButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  padding: "3px 8px",
+  fontSize: 10,
+};
+
 // 6h domyślnie: 12 slotów po 30 min, od 8:00
 const hours = Array.from({ length: 12 }, (_, i) => 12 * 60 + i * SLOT_MIN);
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -320,7 +341,7 @@ export const DoctorCalendar = () => {
 
             {canRate && (
               <button
-                style={{ fontSize: 10, marginTop: 4 }}
+                style={smallButtonStyle}
                 onClick={async (e) => {
                   e.stopPropagation();
 
@@ -358,6 +379,7 @@ export const DoctorCalendar = () => {
         }}
       >
         <button
+          style={secondaryButtonStyle}
           onClick={() => {
             setCurrentWeek((prev) => {
               const d = new Date(prev);
@@ -370,6 +392,7 @@ export const DoctorCalendar = () => {
         </button>
 
         <button
+          style={secondaryButtonStyle}
           onClick={() => {
             setCurrentWeek((prev) => {
               const d = new Date(prev);

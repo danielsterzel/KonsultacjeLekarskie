@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { register } from "../services/authService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import styles from "./styles/Register.module.css";
 
 export const Register = () => {
   const [email, setEmail] = useState("");
@@ -17,17 +18,36 @@ export const Register = () => {
   };
 
   return (
-    <div>
-      <h2>Register</h2>
-      <input placeholder="email" onChange={e => setEmail(e.target.value)} />
-      <input
-        type="password"
-        placeholder="password"
-        onChange={e => setPassword(e.target.value)}
-      />
-      <button onClick={submit}>Register</button>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <h2 className={styles.title}>Rejestracja</h2>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Email</label>
+          <input
+            className={styles.input}
+            type="email"
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Hasło</label>
+          <input
+            className={styles.input}
+            type="password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <button className={styles.button} onClick={submit}>
+          Zarejestruj się
+        </button>
+
+        <div className={styles.footer}>
+          Masz już konto? <Link to="/login">Zaloguj się</Link>
+        </div>
+      </div>
     </div>
   );
 };
-
-export default Register;

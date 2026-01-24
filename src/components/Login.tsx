@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { login } from "../services/authService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import styles from "./styles/Login.module.css";
 
 export const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,15 +18,36 @@ export const Login = () => {
   };
 
   return (
-    <div>
-      <h3>Login</h3>
-      <input placeholder="email" onChange={(e) => setEmail(e.target.value)} />
-      <input
-        type="password"
-        placeholder="password"
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={submit}>Login</button>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <h2 className={styles.title}>Zaloguj się</h2>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Email</label>
+          <input
+            className={styles.input}
+            type="email"
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label}>Hasło</label>
+          <input
+            className={styles.input}
+            type="password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <button className={styles.button} onClick={submit}>
+          Zaloguj się
+        </button>
+
+        <div className={styles.footer}>
+          Nie masz konta? <Link to="/register">Zarejestruj się</Link>
+        </div>
+      </div>
     </div>
   );
 };

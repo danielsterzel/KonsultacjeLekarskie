@@ -1,0 +1,131 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.weekNav {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.navButton {
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  border: none;
+  background: #2f80ed;
+  color: white;
+  cursor: pointer;
+}
+
+.navButton:hover {
+  background: #256ddc;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+}
+
+.dayHeader {
+  text-align: center;
+  font-weight: bold;
+  padding: 10px;
+}
+
+.today {
+  background-color: #e3f2fd;
+  border-radius: 8px;
+}
+
+.dayCounter {
+  font-size: 11px;
+  font-weight: normal;
+  color: #6b7280;
+}
+
+.timeCell {
+  font-size: 12px;
+  padding: 4px;
+  text-align: right;
+  color: #374151;
+}
+
+.slot {
+  border: 1px solid #ccc;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.slotNow {
+  border: 2px solid #ff1744;
+  background-color: #ffe6ea;
+}
+
+.slotInner {
+  pointer-events: none;
+}
+
+.rateButton {
+  font-size: 10px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #2ec4b6;
+  color: white;
+}
+
+.calendarWrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  background: white;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: 80px repeat(7, minmax(140px, 1fr));
+}
+
+.headerCell {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.timeHeader {
+  background: #f9fafb;
+}
+
+.timeCell {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+}
+
+.dayHeader {
+  padding: 10px;
+  text-align: center;
+  font-weight: 600;
+  border-right: 1px solid #e5e7eb;
+}
+
+.slot {
+  border: 1px solid #e5e7eb;
+  transition: background 0.15s ease;
+}
+
+.slot:hover {
+  filter: brightness(0.97);
+}
+

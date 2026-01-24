@@ -1,48 +1,78 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
 import { logout } from "../services/authService";
+import styles from "./styles/Menu.module.css";
 
 export const Menu = () => {
-  const { user, profile} = useAuth();
+  const { user, profile } = useAuth();
   const role = profile?.role;
 
   return (
-    <div style={{ marginBottom: 20 , display: "flex", gap: "10px"}}>
+    <nav className={styles.navbar}>
+      <div className={styles.left}>
+        <Link className={styles.link} to="/">
+          Home
+        </Link>
 
-      {/* NIEZALOGOWANY */}
-      {!user && (
-        <>
-          <Link to="/">Doctors</Link>{" "}
-          <Link to="/login">Login</Link>{" "}
-          <Link to="/register">Register</Link>
-        </>
-      )}
+        {!user && (
+          <>
+            <Link className={styles.link} to="/doctors">
+              Doctors
+            </Link>
+            <Link className={styles.link} to="/login">
+              Login
+            </Link>
+            <Link className={styles.link} to="/register">
+              Register
+            </Link>
+          </>
+        )}
 
-      {/* ZALOGOWANY */}
-      {user && (
-        <>
-          <Link to="/calendar">Calendar</Link>{" "}
-          {role === "patient" && (<Link to="/cart">Cart</Link>)}
-          {role === "patient" && (<Link to="/">Doctors</Link>)}
-          {role === "patient" && (<Link to="/">Home</Link>)}
-          
-          {role === "doctor" && (
-            <Link to="/availability">Availability</Link>
-          )}
-          {role === "doctor" && (<Link to="/">Home</Link>)}
+        {user && (
+          <>
+            <Link className={styles.link} to="/calendar">
+              Calendar
+            </Link>
 
-          {role === "admin" && (
-            <Link to="/settings">Auth settings</Link>
-          )}
-          {role === "admin" && (
-            <Link to="/UserManagement">User Management</Link>
+            {role === "patient" && (
+              <>
+                <Link className={styles.link} to="/doctors">
+                  Doctors
+                </Link>
+                <Link className={styles.link} to="/cart">
+                  Cart
+                </Link>
+              </>
             )}
-          {role === "admin" && (<Link to="/">Home</Link>)}
 
-          <span style={{ marginLeft: 10 }}>{user.email}</span>{" "}
-          <button onClick={logout}>Logout</button>
-        </>
+            {role === "doctor" && (
+              <Link className={styles.link} to="/availability">
+                Availability
+              </Link>
+            )}
+
+            {role === "admin" && (
+              <>
+                <Link className={styles.link} to="/settings">
+                  Auth settings
+                </Link>
+                <Link className={styles.link} to="/UserManagement">
+                  User Management
+                </Link>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {user && (
+        <div className={styles.right}>
+          <span className={styles.email}>{user.email}</span>
+          <button className={styles.logout} onClick={logout}>
+            Logout
+          </button>
+        </div>
       )}
-    </div>
+    </nav>
   );
 };

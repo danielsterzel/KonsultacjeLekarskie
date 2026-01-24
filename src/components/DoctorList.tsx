@@ -3,6 +3,7 @@ import { getDoctors } from "../services/userService";
 import type { AppUser } from "../services/userService";
 import { useAuth } from "../components/AuthContext";
 import { Link } from "react-router-dom";
+import styles from "./styles/DoctorList.module.css";
 
 export const DoctorList = () => {
   const { user } = useAuth();
@@ -11,36 +12,52 @@ export const DoctorList = () => {
 
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      const docs = await getDoctors();
-      setDoctors(docs);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const docs = await getDoctors();
+        setDoctors(docs);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
   return (
-    <div>
-      <h2>Doctors</h2>
+    <div className={styles.container}>
+      <h2 className={styles.title}>Nasi lekarze</h2>
 
-      {loading && <p>Loading...</p>}
+      {loading && <p>Ładowanie listy lekarzy...</p>}
 
       {!loading && doctors.length === 0 && (
-        <p>No doctors found. (Check users roles in RTDB)</p>
+        <p>Brak dostępnych lekarzy.</p>
       )}
 
-      <ul>
-        {doctors.map((d) => (
-          <li key={d.uid}>
-            {d.email}
-            {"  "}
-            {user ? (
-              <Link to="/calendar">View calendar</Link>
-            ) : (
-              <span style={{ color: "#666" }}>Login to view schedule</span>
-            )}
-          </li>
-        ))}
-      </ul>
+      {!loading && doctors.length > 0 && (
+        <div className={styles.grid}>
+          {doctors.map((doctor) => (
+            <div key={doctor.uid} className={styles.card}>
+              <div>
+                <div className={styles.name}>
+                   Dr {doctor.email.split("@")[0]}
+                </div>
+                <div className={styles.email}>{doctor.email}</div>
+              </div>
+
+              <div className={styles.actions}>
+                {user ? (
+                  <Link to="/calendar" className={styles.button}>
+                    Zobacz kalendarz
+                  </Link>
+                ) : (
+                  <div className={styles.disabled}>
+                    Zaloguj się, aby zobaczyć terminy
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
