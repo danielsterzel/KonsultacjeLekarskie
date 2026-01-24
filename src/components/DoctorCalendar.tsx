@@ -56,7 +56,7 @@ const smallButtonStyle: React.CSSProperties = {
 };
 
 // 6h domyślnie: 12 slotów po 30 min, od 8:00
-const hours = Array.from({ length: 12 }, (_, i) => 12 * 60 + i * SLOT_MIN);
+const hours = Array.from({ length: 12 }, (_, i) => 8 * 60 + i * SLOT_MIN);
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const isFinished = (c: Consultation) => {
   const now = new Date();
@@ -109,13 +109,10 @@ export const DoctorCalendar = () => {
     return unsubscribe;
   }, []);
 
-  // ---- core helpers (refactor) ----
-
   const getConsultationForSlot = (dayIndex: number, minute: number) => {
     const slotDate = weekDates[dayIndex];
 
     return consultations.find((c) => {
-      // anulowane nie mają blokować slotów
       if (c.status === "cancelled") return false;
 
       const cDate = new Date(c.date);
@@ -124,12 +121,10 @@ export const DoctorCalendar = () => {
       const start = timeToMinutes(c.startTime);
       const end = start + c.durationInMin;
 
-      // multi-slot: slot należy do wizyty jeśli mieści się w [start, end)
       return minute >= start && minute < end;
     });
   };
 
-  // =================== slot interacations ===================
 
   const handleExistingConsultationClick = async (c: Consultation) => {
     if (
@@ -206,7 +201,6 @@ export const DoctorCalendar = () => {
     }
   }, [profile?.banned]);
 
-  // Reservation handler
 
   const reserveConsultation = async (
     doctor: Doctor,
@@ -255,8 +249,6 @@ export const DoctorCalendar = () => {
       return;
     }
 
-    // klik na istniejącą wizytę
-
     const doctor = askForDoctor(doctors);
     if (!doctor) return;
     const ok = window.confirm(
@@ -287,7 +279,6 @@ export const DoctorCalendar = () => {
     );
   };
 
-  // render UI slot
   const renderSlot = (dayIndex: number, minute: number) => {
     const c = getConsultationForSlot(dayIndex, minute);
     const canRate =
@@ -315,7 +306,6 @@ export const DoctorCalendar = () => {
       );
     }
 
-    // start wizyty albo wolny slot
     return (
       <div
         key={`slot-${dayIndex}-${minute}`}
@@ -368,7 +358,6 @@ export const DoctorCalendar = () => {
       </div>
     );
   };
-  // ---- UI ----
   return (
     <div>
       <div

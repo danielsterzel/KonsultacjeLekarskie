@@ -19,7 +19,6 @@ export const isCurrentSlot = (date: Date, min: number, slotSize = SLOT_MIN) => {
   return nowMin >= min && nowMin < min + slotSize;
 };
 
-//  visit count
 export const countConsultationsForDay = (consultations : Consultation[], date: Date) => {
   return consultations.filter((c) => {
     if (c.status === "cancelled") return false;
